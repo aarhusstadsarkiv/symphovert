@@ -10,7 +10,7 @@ import subprocess
 from subprocess import CalledProcessError
 from pathlib import Path
 import pyperclip
-from convertool.exceptions import SymphonyError
+from symphovert.exceptions import SymphonyError
 
 try:
     import pyautogui
