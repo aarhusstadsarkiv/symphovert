@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "YOUR_MODULE_NAME"
+name = "symphovert"
 version = "0.1.0"
 description = ""
-authors = ["YOUR NAME <YOUR@EMAIL>", 
+authors = ["Nina Jensen <jnik@aarhus.dk>", 
     "Aarhus Stadsarkiv <stadsarkiv@aarhus.dk>"]
 license = "GPL-3.0"
 readme = "README.md"
