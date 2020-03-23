@@ -20,6 +20,7 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 # Globals
 # -----------------------------------------------------------------------------
+ACCEPTED_OUT = ["odt", "ods", "odp"]
 pyautogui.PAUSE = 0.4
 pyautogui.FAILSAFE = False
 
@@ -79,6 +80,9 @@ def find_symphony() -> str:
 def symphony_convert(
     file: Path, outdir: Path, convert_to: str = "odt"
 ) -> None:
+    # Test if output is accepted
+    if convert_to not in ACCEPTED_OUT:
+        raise SymphonyError(f"Cannot convert to {convert_to} using Symphony.")
     # Initialise variables
     cmd: str = find_symphony()
     outfile: Path = outdir.joinpath(f"{file.stem}.{convert_to}")
