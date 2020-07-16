@@ -58,8 +58,11 @@ def cli(files: Path, outdir: Path, to_: str, parents: int) -> None:
     outdir = Path(outdir)
     file_list = get_files(files)
     for file in file_list:
-        new_outdir = create_outdir(file, outdir, parents)
-        symphony_convert(file, new_outdir, to_)
+        try:
+            new_outdir = create_outdir(file, outdir, parents)
+            symphony_convert(file, new_outdir, to_)
+        except Exception as error:
+            raise click.ClickException(str(error))
 
 
 # -----------------------------------------------------------------------------
