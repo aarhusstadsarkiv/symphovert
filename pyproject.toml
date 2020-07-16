@@ -12,6 +12,7 @@ homepage = "https://stadsarkiv.aarhus.dk/"
 python = "^3.8"
 pyperclip = "^1.7.0"
 pyautogui = "^0.9.48"
+click = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
