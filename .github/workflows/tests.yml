@@ -3,8 +3,8 @@ name: Tests
 on: [push]
 
 jobs:
-  lint:
-    name: Check linting
+  check:
+    name: Check linting & types
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
@@ -13,55 +13,22 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
-      - name: Install & set up poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-          source $HOME/.poetry/env
-          poetry config virtualenvs.in-project true
+      - name: Set up poetry
+        uses: dschep/install-poetry-action@v1.3
       - name: Set up cache
         uses: actions/cache@v1
         with:
           path: .venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('**/poetry.lock') }}
+          key: ${{ runner.os }}-venv #-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-venv-
+            ${{ runner.os }}-venv
       - name: Install dependencies
         run: |
-          source $HOME/.poetry/env
-          poetry install
-      - name: Run flake8 & black
-        run: |
-          source $HOME/.poetry/env
-          poetry run flake8 --exclude .venv
-          poetry run black --check . --exclude .venv
-  check:
-    name: Check types
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout 
-        uses: actions/checkout@v1
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
-      - name: Install & set up poetry
-        run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-          source $HOME/.poetry/env
+          poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
-      - name: Set up cache
-        uses: actions/cache@v1
-        with:
-          path: .venv
-          key: ${{ runner.os }}-venv-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-venv-
-      - name: Install dependencies
-        run: |
-          source $HOME/.poetry/env
           poetry install
-      - name: Run mypy
+      - name: Run flake8, black, and mypy
         run: |
-          source $HOME/.poetry/env
+          poetry run flake8
+          poetry run black --check .
           poetry run mypy .
-          
