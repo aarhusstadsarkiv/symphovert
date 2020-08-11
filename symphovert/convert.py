@@ -21,7 +21,7 @@ except Exception as e:
 # Globals
 # -----------------------------------------------------------------------------
 ACCEPTED_OUT = ["odt", "ods", "odp"]
-pyautogui.PAUSE = 0.7
+pyautogui.PAUSE = 1
 pyautogui.FAILSAFE = False
 
 # -----------------------------------------------------------------------------
@@ -99,10 +99,11 @@ def symphony_convert(
         )
     else:
         # Wait a bit, then open the file
-        time.sleep(1.5)
-        pyautogui.hotkey("ctrl", "o", interval=0.3)
-        time.sleep(0.3)
+        time.sleep(2)
+        pyautogui.hotkey("ctrl", "o", interval=0.5)
+        time.sleep(1)
         copypaste(str(file))
+        time.sleep(0.5)
 
         # Symphony opens an extra menu when ctrl+o is used for... reasons.
         # Esc closes it.
@@ -118,11 +119,11 @@ def symphony_convert(
         subprocess.run(
             "taskkill /f /im symphony*", shell=True, capture_output=True
         )
-        time.sleep(0.1)
+        time.sleep(0.5)
         subprocess.run(
             "taskkill /f /im soffice*", shell=True, capture_output=True
         )
-        time.sleep(0.5)
+        time.sleep(1)
         # pylint: enable=subprocess-run-check
 
         # If outfile does not exist after the above, we probably have a
