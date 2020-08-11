@@ -6,6 +6,9 @@ to Open Document Format files using IBM Symphony and PyAutoGUI.
 # Imports
 # -----------------------------------------------------------------------------
 
+import logging
+import time
+from logging import Logger
 from pathlib import Path
 from typing import List
 
@@ -57,12 +60,23 @@ def cli(files: Path, outdir: Path, to_: str, parents: int) -> None:
     files = Path(files)
     outdir = Path(outdir)
     file_list = get_files(files)
+    # Set up logging
+    logger: Logger = log_setup(
+        log_name="Conversion",
+        log_file=outdir / f"_symphovert_{time.time()}.log",
+    )
+    errs: int = 0
     for file in file_list:
         try:
             new_outdir = create_outdir(file, outdir, parents)
             symphony_convert(file, new_outdir, to_)
         except Exception as error:
-            raise click.ClickException(str(error))
+            errs += 1
+            logger.warning(f"{error}")
+    if errs > 0:
+        raise click.ClickException(
+            f"symphovert finished conversion with {errs} errors."
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -93,3 +107,16 @@ def create_outdir(file: Path, outdir: Path, parents: int = 0) -> Path:
     outdir.mkdir(parents=True, exist_ok=True)
 
     return outdir
+
+
+def log_setup(log_name: str, log_file: Path, mode: str = "w") -> Logger:
+    logger = logging.getLogger(log_name)
+    file_handler = logging.FileHandler(log_file, mode)
+    file_handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s %(levelname)s: %(message)s", datefmt="%H:%M:%S"
+        )
+    )
+    logger.addHandler(file_handler)
+    logger.setLevel(logging.INFO)
+    return logger
