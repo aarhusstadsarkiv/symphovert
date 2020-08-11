@@ -21,7 +21,7 @@ except Exception as e:
 # Globals
 # -----------------------------------------------------------------------------
 ACCEPTED_OUT = ["odt", "ods", "odp"]
-pyautogui.PAUSE = 0.4
+pyautogui.PAUSE = 0.7
 pyautogui.FAILSAFE = False
 
 # -----------------------------------------------------------------------------
@@ -48,9 +48,7 @@ def find_symphony() -> str:
 
     # System specific functionality.
     if system == "Windows":
-        find_symphony_cmd = (
-            r"cd %programfiles(x86)% && where /r . symphony.exe"
-        )
+        find_symphony_cmd = r"where.exe *symphony.exe*"
     else:
         raise SymphonyError(
             f"Conversion using IBM Symphony is not supported on {system}."
@@ -102,7 +100,8 @@ def symphony_convert(
     else:
         # Wait a bit, then open the file
         time.sleep(1.5)
-        pyautogui.hotkey("ctrl", "o")
+        pyautogui.hotkey("ctrl", "o", interval=0.3)
+        time.sleep(0.3)
         copypaste(str(file))
 
         # Symphony opens an extra menu when ctrl+o is used for... reasons.
