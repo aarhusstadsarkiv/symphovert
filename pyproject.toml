@@ -13,7 +13,7 @@ python = "^3.8"
 pyperclip = "^1.8.1"
 pyautogui = "^0.9.52"
 click = "^7.1.2"
-pydantic = "^1.6.1"
+pydantic = "^1.7"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1"
