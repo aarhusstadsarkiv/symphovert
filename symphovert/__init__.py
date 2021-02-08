@@ -1,1 +1,3 @@
-__version__ = "0.1.0"
+from importlib.metadata import version  # type: ignore
+
+__version__ = version("symphovert")

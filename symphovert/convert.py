@@ -1,15 +1,25 @@
 """Tool for converting Lotus SmartSuite files to Open Document format.
 """
-
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-import platform
-import time
+import json
 import subprocess
-from subprocess import CalledProcessError
+import time
+from logging import Logger
 from pathlib import Path
+from subprocess import CalledProcessError
+from typing import Dict
+from typing import List
+from typing import Optional
+
 import pyperclip
+import tqdm
+from acamodels import ACABase
+from acamodels import ArchiveFile
+from convertool.core.utils import log_setup
+from convertool.database import FileDB
+
 from symphovert.exceptions import SymphonyError
 
 try:
@@ -20,12 +30,81 @@ except Exception as e:
 # -----------------------------------------------------------------------------
 # Globals
 # -----------------------------------------------------------------------------
-ACCEPTED_OUT = ["odt", "ods", "odp"]
 pyautogui.PAUSE = 1
 pyautogui.FAILSAFE = False
+PARENT_DIR: Path = Path(__file__).parent
 
 # -----------------------------------------------------------------------------
-# Function Definitions
+# FileConv class
+# -----------------------------------------------------------------------------
+
+
+class FileConv(ACABase):
+    files: List[ArchiveFile]
+    db: FileDB
+    out_dir: Path
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    @staticmethod
+    def conv_map() -> Dict[str, str]:
+        map_file = PARENT_DIR / "convert_map.json"
+        with map_file.open(encoding="utf-8") as f:
+            c_map: Dict[str, str] = json.load(f)
+            return c_map
+
+    async def convert(self) -> None:
+        # Initialise variables
+        err_count: int = 0
+        convert_to: Optional[str]
+        converted_uuids = await self.db.converted_uuids()
+        to_convert: List[ArchiveFile] = []
+
+        # Set up logging
+        logger: Logger = log_setup(
+            log_name="Conversion",
+            log_file=Path(self.out_dir) / "_convertool.log",
+        )
+
+        for f in self.files:
+            # Create all output directories
+            (self.out_dir / f.aars_path.parent).mkdir(
+                parents=True, exist_ok=True
+            )
+            if f.puid in self.conv_map() and f.uuid not in converted_uuids:
+                to_convert.append(f)
+
+        # Start conversion.
+        logger.info(
+            f"Started conversion of {len(to_convert)} files "
+            f"from {self.db.url} to {self.out_dir}"
+        )
+
+        for file in tqdm.tqdm(
+            to_convert, desc="Converting files", unit="file"
+        ):
+            # Define output directory
+            file_out: Path = self.out_dir / file.aars_path.parent
+
+            # Convert info
+            convert_to = self.conv_map().get(file.puid)
+
+            if convert_to in ["odt", "ods", "odp"]:
+                logger.info(f"Starting conversion of {file.path}")
+
+                try:
+                    symphony_convert(file.path, file_out, convert_to)
+                except Exception as error:
+                    logger.warning(f"Failed to convert {file.path}: {error}")
+                    err_count += 1
+                else:
+                    await self.db.update_status(file.uuid)
+                    logger.info(f"Converted {file.path} successfully.")
+
+
+# -----------------------------------------------------------------------------
+# Symphony conversion
 # -----------------------------------------------------------------------------
 
 
@@ -40,50 +119,9 @@ def save_as(file: str) -> None:
     copypaste(file)
 
 
-def find_symphony() -> str:
-
+def symphony_convert(file: Path, outdir: Path, convert_to: str) -> None:
     # Initialise variables
-    exe_path: str = ""
-    system: str = platform.system()
-
-    # System specific functionality.
-    if system == "Windows":
-        find_symphony_cmd = r"where.exe *symphony.exe*"
-    else:
-        raise SymphonyError(
-            f"Conversion using IBM Symphony is not supported on {system}."
-        )
-
-    # Invoke the command to find Symphony on Windows.
-    try:
-        cmd = subprocess.run(
-            f"{find_symphony_cmd}", shell=True, check=True, capture_output=True
-        )
-    except CalledProcessError as error:
-        # Didn't find executable.
-        # Return code != 0
-        error_msg = error.stderr.strip().decode()
-        raise SymphonyError(
-            f"Could not find IBM Symphony with error: {error_msg}"
-        )
-    else:
-        # Remove trailing newline and decode stdout from byte string.
-        # Windows needs the quotes. IBM Symphony has more than one exe file
-        # after install. Finger's crossed the correct one is always the first
-        # Windows finds. :|
-        exe_path = f'"{cmd.stdout.strip().decode().splitlines()[0]}"'
-        return exe_path
-
-
-def symphony_convert(
-    file: Path, outdir: Path, convert_to: str = "odt"
-) -> None:
-    # Test if output is accepted
-    if convert_to not in ACCEPTED_OUT:
-        raise SymphonyError(f"Cannot convert to {convert_to} using Symphony.")
-    # Initialise variables
-    cmd: str = find_symphony()
-    outfile: Path = outdir.joinpath(f"{file.stem}.{convert_to}")
+    outfile: Path = outdir / f"{file.stem}.{convert_to}"
 
     # If outfile exists, delete it first.
     if outfile.is_file():
@@ -91,7 +129,9 @@ def symphony_convert(
 
     # Open IBM Symphony and do unholy things with pyautogui
     try:
-        subprocess.run(cmd, shell=True, check=True, capture_output=True)
+        subprocess.run(
+            "symphony.exe", shell=True, check=True, capture_output=True
+        )
     except CalledProcessError as error:
         error_msg = error.stderr.strip().decode()
         raise SymphonyError(
