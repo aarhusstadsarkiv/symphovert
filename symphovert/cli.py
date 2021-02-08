@@ -1,35 +1,34 @@
 """Tool for converting Lotus Word Pro and Lotus 123 Spreadsheet files
 to Open Document Format files using IBM Symphony and PyAutoGUI.
 """
-
 # -----------------------------------------------------------------------------
 # Imports
 # -----------------------------------------------------------------------------
-
-import logging
-import time
-from logging import Logger
+import asyncio
+from functools import wraps
 from pathlib import Path
+from typing import Any
+from typing import Callable
 from typing import List
 
 import click
-from pydantic import BaseModel
-from symphovert.convert import symphony_convert
+from acamodels import ArchiveFile
+from click.core import Context as ClickContext
+
+from symphovert.convert import FileConv
+from symphovert.convert import FileDB
 
 # -----------------------------------------------------------------------------
-# Globals
-# -----------------------------------------------------------------------------
-
-ACCEPTED_OUT = ["odt", "ods", "odp"]
-
-# -----------------------------------------------------------------------------
-# FileConv data model
+# Auxiliary functions
 # -----------------------------------------------------------------------------
 
 
-class FileConv(BaseModel):
-    files: List[Path]
-    outdir: Path
+def coro(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        return asyncio.run(func(*args, **kwargs))
+
+    return wrapper
 
 
 # -----------------------------------------------------------------------------
@@ -44,79 +43,32 @@ class FileConv(BaseModel):
 @click.argument(
     "outdir", type=click.Path(exists=True, file_okay=False, resolve_path=True)
 )
-@click.option(
-    "--to",
-    "to_",
-    type=click.Choice(ACCEPTED_OUT, case_sensitive=False),
-    default="odt",
-    help="File format to convert to. Default: ODT.",
-)
-@click.option(
-    "--parents",
-    default=2,
-    help="Number of parent directories to use for output name. Default: 0",
-)
-def cli(files: Path, outdir: Path, to_: str, parents: int) -> None:
-    files = Path(files)
-    outdir = Path(outdir)
-    file_list = get_files(files)
-    # Set up logging
-    logger: Logger = log_setup(
-        log_name="Conversion",
-        log_file=outdir / f"_symphovert_{time.time()}.log",
-    )
-    errs: int = 0
-    for file in file_list:
-        try:
-            new_outdir = create_outdir(file, outdir, parents)
-            symphony_convert(file, new_outdir, to_)
-        except Exception as error:
-            errs += 1
-            logger.warning(f"{error}")
-    if errs > 0:
-        raise click.ClickException(
-            f"symphovert finished conversion with {errs} errors."
-        )
+@click.pass_context
+@coro
+async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
+    """Convert files from a digiarch generated file database.
+    OUTDIR specifies the directory in which to output converted files.
+    It must be an existing directory."""
 
-
-# -----------------------------------------------------------------------------
-# Auxiliary functions
-# -----------------------------------------------------------------------------
-
-
-def get_files(files: Path) -> List[Path]:
-    if files.is_file():
-        return [Path(line.rstrip()) for line in files.open(encoding="utf-8")]
-    elif files.is_dir():
-        return [path for path in files.rglob("*") if path.is_file()]
+    try:
+        file_db: FileDB = FileDB(f"sqlite:///{files}")
+    except Exception:
+        raise click.ClickException(f"Failed to load {files} as a database.")
     else:
-        raise ValueError("No files found!")
+        click.secho("Collecting files...", bold=True)
+        files_: List[ArchiveFile] = await file_db.get_files()
+        if not files_:
+            raise click.ClickException("Database is empty. Aborting.")
+
+    ctx.obj = FileConv(files=files_, db=file_db, out_dir=outdir)
 
 
-def create_outdir(file: Path, outdir: Path, parents: int = 0) -> Path:
-    for i in range(parents, 0, -1):
-        try:
-            subdir = Path(f"{file}").parent.parts[-i]
-        except IndexError:
-            err_msg = f"Parent index {parents} out of range for {file}"
-            raise IndexError(err_msg)
-        else:
-            outdir = outdir.joinpath(subdir)
-
-    # Create the resulting output directory
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    return outdir
-
-
-def log_setup(log_name: str, log_file: Path, mode: str = "w") -> Logger:
-    logger = logging.getLogger(log_name)
-    file_handler = logging.FileHandler(log_file, mode)
-    file_handler.setFormatter(
-        logging.Formatter(
-            fmt="%(asctime)s %(levelname)s: %(message)s", datefmt="%H:%M:%S"
-        )
-    )
-    logger.addHandler(file_handler)
-    logger.setLevel(logging.INFO)
-    return logger
+@cli.command()
+@click.pass_obj
+@coro
+async def main(file_conv: FileConv) -> None:
+    """Convert files to their Main Archival version."""
+    try:
+        await file_conv.convert()
+    except Exception as error:
+        raise click.ClickException(str(error))

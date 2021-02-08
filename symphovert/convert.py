@@ -121,7 +121,7 @@ def save_as(file: str) -> None:
 
 def symphony_convert(file: Path, outdir: Path, convert_to: str) -> None:
     # Initialise variables
-    outfile: Path = outdir.joinpath(f"{file.stem}.{convert_to}")
+    outfile: Path = outdir / f"{file.stem}.{convert_to}"
 
     # If outfile exists, delete it first.
     if outfile.is_file():
