@@ -15,6 +15,7 @@ import click
 from acamodels import ArchiveFile
 from click.core import Context as ClickContext
 
+from symphovert import __version__
 from symphovert.convert import FileConv
 from symphovert.convert import FileDB
 
@@ -43,6 +44,7 @@ def coro(func: Callable) -> Callable:
 @click.argument(
     "outdir", type=click.Path(exists=True, file_okay=False, resolve_path=True)
 )
+@click.version_option(version=__version__)
 @click.pass_context
 @coro
 async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
