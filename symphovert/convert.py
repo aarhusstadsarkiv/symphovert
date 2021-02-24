@@ -25,7 +25,7 @@ from symphovert.exceptions import SymphonyError
 try:
     import pyautogui
 except Exception as e:
-    raise SymphonyError(f"Failed to import pyautogui with error: {e}")
+    raise ImportError(f"Failed to import pyautogui with error: {e}")
 
 # -----------------------------------------------------------------------------
 # Globals
@@ -64,7 +64,7 @@ class FileConv(ACABase):
         # Set up logging
         logger: Logger = log_setup(
             log_name="Conversion",
-            log_file=Path(self.out_dir) / "_convertool.log",
+            log_file=Path(self.out_dir) / "_symphovert.log",
         )
 
         for f in self.files:
@@ -101,6 +101,12 @@ class FileConv(ACABase):
                 else:
                     await self.db.update_status(file.uuid)
                     logger.info(f"Converted {file.path} successfully.")
+
+        # We are done! Log before we finish.
+        logger.info(
+            f"Finished conversion of {len(to_convert)} files "
+            f"with {err_count} issues."
+        )
 
 
 # -----------------------------------------------------------------------------
