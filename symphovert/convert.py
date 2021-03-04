@@ -64,7 +64,7 @@ class FileConv(ACABase):
         # Set up logging
         logger: Logger = log_setup(
             log_name="Conversion",
-            log_file=Path(self.out_dir) / "_symphovert.log",
+            log_file=Path(self.out_dir) / "symphovert.log",
         )
 
         for f in self.files:
