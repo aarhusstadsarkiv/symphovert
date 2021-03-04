@@ -62,9 +62,11 @@ class FileConv(ACABase):
         to_convert: List[ArchiveFile] = []
 
         # Set up logging
+        log_path: Path = self.out_dir / "_metadata"
+        log_path.mkdir(exist_ok=True)
         logger: Logger = log_setup(
             log_name="Conversion",
-            log_file=Path(self.out_dir) / "symphovert.log",
+            log_file=log_path / "symphovert.log",
         )
 
         for f in self.files:
