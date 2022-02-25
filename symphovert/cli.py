@@ -12,7 +12,7 @@ from typing import Callable
 from typing import List
 
 import click
-from acamodels import ArchiveFile
+from symphovert.ArchiveFileRel import ArchiveFile
 from click.core import Context as ClickContext
 
 from symphovert import __version__

@@ -16,7 +16,7 @@ from typing import Optional
 import pyperclip
 import tqdm
 from acamodels import ACABase
-from acamodels import ArchiveFile
+from symphovert.ArchiveFileRel import ArchiveFile
 from convertool.core.utils import log_setup
 from convertool.database import FileDB
 
