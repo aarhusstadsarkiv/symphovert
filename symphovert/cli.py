@@ -18,6 +18,7 @@ from click.core import Context as ClickContext
 from symphovert import __version__
 from symphovert.convert import FileConv
 from symphovert.convert import FileDB
+import os
 
 # -----------------------------------------------------------------------------
 # Auxiliary functions
@@ -51,7 +52,8 @@ async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
     """Convert files from a digiarch generated file database.
     OUTDIR specifies the directory in which to output converted files.
     It must be an existing directory."""
-
+    data_root_path = Path(files).parent.parent
+    os.environ["ROOTPATH"] = str(data_root_path)
     try:
         file_db: FileDB = FileDB(f"sqlite:///{files}")
     except Exception:
@@ -72,5 +74,9 @@ async def main(file_conv: FileConv) -> None:
     """Convert files to their Main Archival version."""
     try:
         await file_conv.convert()
+        print("Converted files.")
     except Exception as error:
         raise click.ClickException(str(error))
+
+if __name__ == "__main__":
+    cli()

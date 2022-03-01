@@ -18,9 +18,10 @@ import tqdm
 from acamodels import ACABase
 from symphovert.ArchiveFileRel import ArchiveFile
 from convertool.core.utils import log_setup
-from convertool.database import FileDB
+from symphovert.db import FileDB
 
 from symphovert.exceptions import SymphonyError
+import os
 
 try:
     import pyautogui
@@ -34,7 +35,7 @@ pyautogui.PAUSE = 1
 pyautogui.FAILSAFE = False
 PARENT_DIR: Path = Path(__file__).parent
 
-# -----------------------------------------------------------------------------
+# --------------------------------------------------------------------------Æ---
 # FileConv class
 # -----------------------------------------------------------------------------
 
@@ -71,7 +72,7 @@ class FileConv(ACABase):
 
         for f in self.files:
             # Create all output directories
-            (self.out_dir / f.aars_path.parent).mkdir(
+            (self.out_dir / f.relative_path.parent).mkdir(
                 parents=True, exist_ok=True
             )
             if f.puid in self.conv_map() and f.uuid not in converted_uuids:
@@ -87,22 +88,23 @@ class FileConv(ACABase):
             to_convert, desc="Converting files", unit="file"
         ):
             # Define output directory
-            file_out: Path = self.out_dir / file.aars_path.parent
+            file_out: Path = self.out_dir / file.relative_path.parent
 
             # Convert info
             convert_to = self.conv_map().get(file.puid)
 
             if convert_to in ["odt", "ods", "odp"]:
-                logger.info(f"Starting conversion of {file.path}")
+                logger.info(f"Starting conversion of {file.relative_path}")
 
                 try:
-                    symphony_convert(file.path, file_out, convert_to)
+                    symphony_convert(file.relative_path, file_out, convert_to)
                 except Exception as error:
-                    logger.warning(f"Failed to convert {file.path}: {error}")
+                    absolute_file_path = Path(os.environ["ROOTPATH"]) / file.relative_path
+                    logger.warning(f"Failed to convert {absolute_file_path}: {error}")
                     err_count += 1
                 else:
                     await self.db.update_status(file.uuid)
-                    logger.info(f"Converted {file.path} successfully.")
+                    logger.info(f"Converted {file.relative_path} successfully.")
 
         # We are done! Log before we finish.
         logger.info(
@@ -150,7 +152,8 @@ def symphony_convert(file: Path, outdir: Path, convert_to: str) -> None:
         time.sleep(2)
         pyautogui.hotkey("ctrl", "o", interval=0.5)
         time.sleep(1)
-        copypaste(str(file))
+        absolute_file_path = Path(os.environ["ROOTPATH"]) / file
+        copypaste(str(absolute_file_path))
         time.sleep(0.5)
 
         # Symphony opens an extra menu when ctrl+o is used for... reasons.
