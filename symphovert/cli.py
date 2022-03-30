@@ -19,6 +19,7 @@ from symphovert import __version__
 from symphovert.convert import FileConv
 from symphovert.convert import FileDB
 import os
+import pdb
 
 # -----------------------------------------------------------------------------
 # Auxiliary functions
@@ -73,6 +74,7 @@ async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
 async def main(file_conv: FileConv) -> None:
     """Convert files to their Main Archival version."""
     try:
+        print(f"File conv files amount: {len(file_conv.files)}")
         await file_conv.convert()
         print("Converted files.")
     except Exception as error:
