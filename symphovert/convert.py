@@ -70,6 +70,8 @@ class FileConv(ACABase):
             log_file=log_path / "symphovert.log",
         )
 
+        log_file = open(log_path / "log1.txt", "w")
+
         for f in self.files:
             # Create all output directories
             (self.out_dir / f.relative_path.parent).mkdir(
@@ -104,6 +106,7 @@ class FileConv(ACABase):
                     err_count += 1
                 else:
                     await self.db.update_status(file.uuid)
+                    log_file.write(str(file.uuid) + "\n")
                     logger.info(f"Converted {file.relative_path} successfully.")
 
         # We are done! Log before we finish.
@@ -111,6 +114,8 @@ class FileConv(ACABase):
             f"Finished conversion of {len(to_convert)} files "
             f"with {err_count} issues."
         )
+
+        log_file.close()
 
 
 # -----------------------------------------------------------------------------

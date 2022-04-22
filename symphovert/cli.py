@@ -61,7 +61,7 @@ async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
         raise click.ClickException(f"Failed to load {files} as a database.")
     else:
         click.secho("Collecting files...", bold=True)
-        files_: List[ArchiveFile] = await file_db.get_files()
+        files_: List[ArchiveFile] = await file_db.get_lotus_smartsuite_files()
         if not files_:
             raise click.ClickException("Database is empty. Aborting.")
 

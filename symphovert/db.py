@@ -4,7 +4,7 @@
 # from typing import Any
 # from typing import Dict
 
-from typing import List
+from typing import Dict, List
 from typing import Set
 from uuid import UUID
 
@@ -19,6 +19,7 @@ from sqlalchemy_views import CreateView
 from sqlalchemy_views import DropView
 
 from convertool.exceptions import FileParseError
+import json
 
 # -----------------------------------------------------------------------------
 # Database class
@@ -86,6 +87,19 @@ class FileDB(Database):
 
     async def get_files(self) -> List[ArchiveFile]:
         query = self.files.select()
+        rows = await self.fetch_all(query)
+        try:
+            files = parse_obj_as(List[ArchiveFile], rows)
+        except ValidationError:
+            raise FileParseError("Failed to parse files as ArchiveFiles.")
+        else:
+            return files
+
+    async def get_lotus_smartsuite_files(self) -> List[ArchiveFile]:
+        with open("convert_map.json", "r") as read_file:
+            convert_map: Dict[str, str] = json.load(read_file)
+        
+        query = self.files.select().where(self.files.c.puid in convert_map)
         rows = await self.fetch_all(query)
         try:
             files = parse_obj_as(List[ArchiveFile], rows)
