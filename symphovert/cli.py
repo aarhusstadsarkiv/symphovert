@@ -75,6 +75,7 @@ async def main(file_conv: FileConv) -> None:
     """Convert files to their Main Archival version."""
     try:
         print(f"File conv includes {len(file_conv.files)} files.")
+        print("Starting conversion.")
         await file_conv.convert()
         print("Converted files.")
     except Exception as error:
