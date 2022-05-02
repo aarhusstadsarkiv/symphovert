@@ -2,5 +2,9 @@
     "aca-fmt/1": "ods",
     "fmt/340": "odt",
     "fmt/1216": "odp",
-    "x-fmt/340": "odt"
+    "x-fmt/340": "odt",
+    "x-fmt/114": "ods",
+    "x-fmt/115": "ods",
+    "x-fmt/116": "ods",
+    "x-fmt/117": "ods",
 }
