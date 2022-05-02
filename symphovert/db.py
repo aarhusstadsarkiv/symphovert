@@ -99,8 +99,8 @@ class FileDB(Database):
         with open("convert_map.json", "r") as read_file:
             convert_map: Dict[str, str] = json.load(read_file)
         
-        query = self.files.select().where(self.files.c.puid in convert_map)
-        rows = await self.fetch_all(query)
+        query = "SELECT * FROM Files WHERE Files.puid IN ('aca-fmt/1', 'fmt/340', 'fmt/1216', 'x-fmt/340');"
+        rows = await self.fetch_all(query=query)
         try:
             files = parse_obj_as(List[ArchiveFile], rows)
         except ValidationError:
