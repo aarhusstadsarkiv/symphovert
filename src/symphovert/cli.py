@@ -1,76 +1,64 @@
-"""Tool for converting Lotus Word Pro and Lotus 123 Spreadsheet files
-to Open Document Format files using IBM Symphony and PyAutoGUI.
-"""
-# -----------------------------------------------------------------------------
-# Imports
-# -----------------------------------------------------------------------------
-import asyncio
-from functools import wraps
+from logging import ERROR
+from logging import INFO
+from os import PathLike
 from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import List
 
 import click
-from acamodels import ArchiveFile
-from click.core import Context as ClickContext
+from acacore.database import FilesDB
+from acacore.models.event import Event
+from acacore.models.file import MasterFile
+from acacore.utils.click import end_program
+from acacore.utils.click import start_program
+from acacore.utils.helpers import ExceptionManager
 
-from symphovert import __version__
-from symphovert.convert import FileConv
-from symphovert.convert import FileDB
+from . import __version__
+from .convert import symphony_convert
+from .exceptions import SymphonyError
 
-# -----------------------------------------------------------------------------
-# Auxiliary functions
-# -----------------------------------------------------------------------------
-
-
-def coro(func: Callable) -> Callable:
-    @wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        return asyncio.run(func(*args, **kwargs))
-
-    return wrapper
+TOOL_NAME = "symphovert"
 
 
-# -----------------------------------------------------------------------------
-# CLI
-# -----------------------------------------------------------------------------
-
-
-@click.group(invoke_without_command=True)
-@click.argument(
-    "files", type=click.Path(exists=True, file_okay=True, resolve_path=True)
-)
-@click.argument(
-    "outdir", type=click.Path(exists=True, file_okay=False, resolve_path=True)
-)
+@click.command("symphovert", no_args_is_help=True)
+@click.argument("avid", type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True), required=True)
 @click.version_option(version=__version__)
 @click.pass_context
-@coro
-async def cli(ctx: ClickContext, files: Path, outdir: Path) -> None:
-    """Convert files from a digiarch generated file database.
-    OUTDIR specifies the directory in which to output converted files.
-    It must be an existing directory."""
+def cli(ctx: click.Context, avid: str | PathLike[str]):
+    avid = Path(avid)
+    db_path = avid.joinpath("_metadata", "avid.db")
+    original_docs_dir = avid.joinpath("OriginalDocuments")
+    master_docs_dir = avid.joinpath("MasterDocuments")
 
-    try:
-        file_db: FileDB = FileDB(f"sqlite:///{files}")
-    except Exception:
-        raise click.ClickException(f"Failed to load {files} as a database.")
-    else:
-        click.secho("Collecting files...", bold=True)
-        files_: List[ArchiveFile] = await file_db.get_files()
-        if not files_:
-            raise click.ClickException("Database is empty. Aborting.")
+    if not db_path.is_file():
+        raise click.BadParameter(f"Database is not present at {db_path}.", ctx)
 
-    ctx.obj = FileConv(files=files_, db=file_db, out_dir=outdir)
+    with FilesDB(db_path) as db:
+        if not db.is_initialised():
+            raise click.BadParameter("Database is not initialised.", ctx)
 
+        logger, _ = start_program(ctx, db, __version__)
 
-@cli.command()
-@click.pass_obj
-@coro
-async def main(file_conv: FileConv) -> None:
-    """Convert files to their Main Archival version."""
-    try:
-        await file_conv.convert()
-    except Exception as error:
-        raise click.ClickException(str(error))
+        with ExceptionManager(BaseException) as exception:
+            for file in db.original_files.select("processed is false and action = 'convert'"):
+                if not file.action_data.convert:
+                    continue
+                if file.action_data.convert.tool != TOOL_NAME:
+                    continue
+
+                Event.from_command(ctx, "start", file).log(INFO, logger, name=file.name)
+
+                file.root = avid
+                master_file_path = master_docs_dir.joinpath(file.get_absolute_path().relative_to(original_docs_dir))
+                master_file_path = master_file_path.with_suffix("." + file.action_data.convert.output.lstrip("."))
+
+                try:
+                    symphony_convert(file.get_absolute_path(), master_file_path)
+                except SymphonyError as e:
+                    Event.from_command(ctx, "error", file).log(ERROR, logger, error=repr(e))
+                    continue
+
+                master_file = MasterFile.from_file(master_file_path, avid, {"original_uuid": file.uuid, "sequence": 0})
+
+                db.master_files.insert(master_file)
+                db.commit()
+
+        end_program(ctx, db, exception, False, logger)
