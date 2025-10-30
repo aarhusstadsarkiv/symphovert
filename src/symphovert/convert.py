@@ -47,6 +47,8 @@ def symphony_convert(src: Path, dst: Path) -> None:
         pyautogui.press("escape")
         sleep(2)
 
+        dst.parent.mkdir(parents=True, exist_ok=True)
+
         # Save the file as ODT.
         save_as(str(dst))
         sleep(2)
