@@ -59,6 +59,8 @@ def cli(ctx: click.Context, avid: str | PathLike[str]):
                 master_file = MasterFile.from_file(master_file_path, avid, {"original_uuid": file.uuid, "sequence": 0})
 
                 db.master_files.insert(master_file)
+                file.processed = True
+                db.original_files.update(file)
                 db.commit()
 
                 Event.from_command(ctx, "output", master_file).log(INFO, logger, name=master_file.name)
