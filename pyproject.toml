@@ -132,3 +132,8 @@ ignore-decorators = ["pytest.fixture"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 300
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.2",
+]
