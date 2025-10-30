@@ -44,7 +44,7 @@ def cli(ctx: click.Context, avid: str | PathLike[str]):
                 if file.action_data.convert.tool != TOOL_NAME:
                     continue
 
-                Event.from_command(ctx, "start", file).log(INFO, logger, name=file.name)
+                Event.from_command(ctx, "convert", file).log(INFO, logger, name=file.name)
 
                 file.root = avid
                 master_file_path = master_docs_dir.joinpath(file.get_absolute_path().relative_to(original_docs_dir))
@@ -60,5 +60,7 @@ def cli(ctx: click.Context, avid: str | PathLike[str]):
 
                 db.master_files.insert(master_file)
                 db.commit()
+
+                Event.from_command(ctx, "output", master_file).log(INFO, logger, name=master_file.name)
 
         end_program(ctx, db, exception, False, logger)
