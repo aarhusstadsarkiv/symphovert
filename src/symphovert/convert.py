@@ -62,4 +62,4 @@ def symphony_convert(src: Path, dst: Path) -> None:
         # If outfile does not exist after the above, we probably have a
         # problem.
         if not dst.is_file():
-            raise SymphonyError(f"Conversion of {src} failed!")
+            raise SymphonyError("Output file not found.")
