@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from symphovert!")
+from importlib.metadata import version  # type: ignore
+
+__version__ = version("symphovert")
