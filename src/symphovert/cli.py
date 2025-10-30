@@ -19,11 +19,11 @@ TOOL_NAME = "symphovert"
 
 
 @click.command("symphovert", no_args_is_help=True)
-@click.argument("avid", type=click.Path(exists=True, file_okay=False, writable=True, resolve_path=True), required=True)
+@click.argument("avid", type=click.Path(exists=True, file_okay=False, writable=True), required=True)
 @click.version_option(version=__version__)
 @click.pass_context
 def cli(ctx: click.Context, avid: str | PathLike[str]):
-    avid = Path(avid)
+    avid = Path(avid).absolute()
     db_path = avid.joinpath("_metadata", "avid.db")
     original_docs_dir = avid.joinpath("OriginalDocuments")
     master_docs_dir = avid.joinpath("MasterDocuments")
