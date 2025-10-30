@@ -24,9 +24,9 @@ def save_as(file: str) -> None:
 
 
 def symphony_convert(src: Path, dst: Path) -> None:
-    # If outfile exists, delete it first.
+    # If outfile exists, let it be.
     if dst.is_file():
-        dst.unlink()
+        return
 
     # Open IBM Symphony and do unholy things with pyautogui
     try:
