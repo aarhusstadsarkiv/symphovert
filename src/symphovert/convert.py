@@ -52,12 +52,10 @@ def symphony_convert(src: Path, dst: Path) -> None:
         sleep(2)
 
         # Kill Symphony
-        # pylint: disable=subprocess-run-check
-        run_process("taskkill /f /im symphony*", shell=True, capture_output=True)
+        run_process("taskkill /f /im symphony*", check=False, shell=True, capture_output=True)
         sleep(0.5)
-        run_process("taskkill /f /im soffice*", shell=True, capture_output=True)
+        run_process("taskkill /f /im soffice*", check=False, shell=True, capture_output=True)
         sleep(1)
-        # pylint: enable=subprocess-run-check
 
         # If outfile does not exist after the above, we probably have a
         # problem.
