@@ -2,11 +2,6 @@ name: Linting
 
 on:
   push:
-    paths:
-      - src/**
-      - pyproject.toml
-      - uv.lock
-      - .github/workflows/test.yml
 
 jobs:
   linting:
