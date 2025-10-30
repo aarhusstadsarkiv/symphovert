@@ -50,6 +50,10 @@ def cli(ctx: click.Context, avid: str | PathLike[str]):
                 master_file_path = master_docs_dir.joinpath(file.get_absolute_path().relative_to(original_docs_dir))
                 master_file_path = master_file_path.with_suffix("." + file.action_data.convert.output.lstrip("."))
 
+                if master_file := db.master_files[{"relative_path": str(master_file_path.relative_to(avid))}]:
+                    Event.from_command(ctx, "exists", master_file).log(INFO, logger, name=master_file.name)
+                    continue
+
                 try:
                     symphony_convert(file.get_absolute_path(), master_file_path)
                 except SymphonyError as e:
